@@ -35,10 +35,20 @@ class AuthService {
         }
     }
 
-// Login user
+    // Get the stored token
+    getToken(): string | null {
+        return localStorage.getItem('token') || sessionStorage.getItem('token');
+    }
+
+    // Check if user is logged in
+    isLoggedIn(): boolean {
+        return !!this.getToken();
+    }
+
+    // Login user
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
         try {
-            const response = await axios.post(`${API_URL}/auth/login`, credentials);
+            const response = await axios.post(`${API_URL}/login`, credentials);
             const data = response.data as AuthResponse;
 
             // Store the token
@@ -64,6 +74,7 @@ class AuthService {
         delete axios.defaults.headers.common['Authorization'];
     }
 
+    // Get current user info
 // Setup axios interceptor to handle token refresh or auth errors
     setupInterceptors(): void {
         axios.interceptors.response.use(
