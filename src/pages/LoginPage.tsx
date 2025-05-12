@@ -1,10 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import authService, { LoginCredentials } from '../services/AuthService';
+
+export interface User {
+    id: number;
+    username: string;
+    email: string;
+    is_active: boolean;
+    full_name?: string;
+    role?: string;
+    profile?: {
+        phone_number?: string;
+        address?: string;
+        bio?: string;
+        gender?: string;
+        profile_picture?: string;
+    };
+}
+
+type UserRole = 'student' | 'teacher' | 'staff' | 'admin';
+
+interface LoginFormData {
+    email: string;
+    password: string;
+    rememberMe: boolean;
+}
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const [isDarkMode, setIsDarkMode] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const [formData, setFormData] = useState<LoginFormData>({
+        email: '',
+        password: '',
+        rememberMe: false
+    });
+    const [error, setError] = useState<string>('');
 
     useEffect(() => {
         const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -13,11 +44,52 @@ const LoginPage: React.FC = () => {
         return () => darkModeMediaQuery.removeEventListener('change', handleChange);
     }, []);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle login logic here
-        console.log('Login submitted');
-        navigate('/'); // Redirect to home page after login
+        setError('');
+
+        try {
+            const credentials: LoginCredentials = {
+                email: formData.email,
+                password: formData.password,
+                rememberMe: formData.rememberMe
+            };
+
+            const response = await authService.login(credentials);
+            const userRole = response.user.role as UserRole;
+
+            // Store user info in localStorage
+            localStorage.setItem('userRole', userRole);
+            localStorage.setItem('userName', response.user.full_name || '');
+            
+            // Redirect based on role
+            switch (userRole) {
+                case 'student':
+                    navigate('/student-dashboard');
+                    break;
+                case 'teacher':
+                    navigate('/teacher-dashboard');
+                    break;
+                case 'staff':
+                    navigate('/staff-dashboard');
+                    break;
+                case 'admin':
+                    navigate('/admin-dashboard');
+                    break;
+                default:
+                    navigate('/');
+            }
+        } catch (err) {
+            setError('Email hoặc mật khẩu không đúng');
+        }
     };
 
     return (
@@ -81,6 +153,9 @@ const LoginPage: React.FC = () => {
                             <input
                                 type="email"
                                 id="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleInputChange}
                                 className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200`}
                                 placeholder="your@email.com"
                                 required
@@ -98,11 +173,24 @@ const LoginPage: React.FC = () => {
                             <input
                                 type="password"
                                 id="password"
+                                name="password"
+                                value={formData.password}
+                                onChange={handleInputChange}
                                 className={`w-full px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200`}
                                 placeholder="••••••••"
                                 required
                             />
                         </motion.div>
+
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="text-red-500 text-sm text-center"
+                            >
+                                {error}
+                            </motion.div>
+                        )}
 
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
@@ -112,11 +200,14 @@ const LoginPage: React.FC = () => {
                         >
                             <div className="flex items-center">
                                 <input
-                                    id="remember"
+                                    id="rememberMe"
+                                    name="rememberMe"
                                     type="checkbox"
+                                    checked={formData.rememberMe}
+                                    onChange={handleInputChange}
                                     className={`h-4 w-4 rounded border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'} text-blue-600 focus:ring-blue-500`}
                                 />
-                                <label htmlFor="remember" className={`ml-2 block text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                <label htmlFor="rememberMe" className={`ml-2 block text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Ghi nhớ đăng nhập
                                 </label>
                             </div>

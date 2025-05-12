@@ -3,7 +3,7 @@ import axios from 'axios';
 // API base URL - adjust as needed
 const API_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) ||
     (import.meta?.env?.REACT_APP_API_URL) ||
-    'http://127.0.0.1:8000/api';
+    'http://127.0.0.1:8000/api/v1/auth';
 
 // Types
 export interface LoginCredentials {
@@ -18,11 +18,22 @@ export interface AuthResponse {
     user: User;
 }
 
+export interface UserProfile {
+    phone_number?: string;
+    address?: string;
+    bio?: string;
+    gender?: string;
+    profile_picture?: string;
+}
+
 export interface User {
     id: number;
+    username: string;
     email: string;
+    is_active: boolean;
     full_name?: string;
     role?: string;
+    profile?: UserProfile;
 }
 
 class AuthService {
